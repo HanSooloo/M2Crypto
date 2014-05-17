@@ -249,7 +249,10 @@ extern PKCS7_set_type(PKCS7 *p7, int type);
 %inline %{
 PKCS7 *pkcs7_create_deg(X509 *x509) {
     PKCS7 *p7 = NULL;
-    PKCS7_SIGNED = NULL;
+    PKCS7_SIGNED *p7s = NULL;
+	STACK_OF(X509_CRL) *crl_stack=NULL;
+	STACK_OF(X509) *cert_stack=NULL;
+
     int ret=1;
     
 	if ((p7=PKCS7_new()) == NULL) goto end;
@@ -274,7 +277,7 @@ PKCS7 *pkcs7_create_deg(X509 *x509) {
 end:
 	if (p7 != NULL) PKCS7_free(p7);
 
-return (p7);	/* need to return a PKCS7* */
+	return (p7);	/* need to return a PKCS7* */
     
 }
 %}
