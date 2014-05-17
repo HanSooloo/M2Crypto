@@ -8,6 +8,7 @@
 #include <openssl/evp.h>
 #include <openssl/objects.h>
 #include <openssl/pkcs7.h>
+#include <openssl/err.h>
 %}
 
 %apply Pointer NONNULL { BIO * };
@@ -269,8 +270,7 @@ PKCS7 *pkcs7_create_deg(X509 *x509) {
 	
 	if (!(PKCS7_add_certificate(p7, x509) == 1))
 		{
-		BIO_printf(bio_err, "error loading certificates\n");
-		ERR_print_errors(bio_err);
+		PyErr_SetString(_pkcs7_err, ERR_reason_error_string(ERR_get_error()));
 		goto end;
 		}
 	
