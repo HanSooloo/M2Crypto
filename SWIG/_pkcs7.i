@@ -8,7 +8,6 @@
 #include <openssl/evp.h>
 #include <openssl/objects.h>
 #include <openssl/pkcs7.h>
-#include <openssl/err.h>
 %}
 
 %apply Pointer NONNULL { BIO * };
