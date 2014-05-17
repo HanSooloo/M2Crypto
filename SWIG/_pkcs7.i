@@ -239,3 +239,44 @@ STACK_OF(X509) *pkcs7_get0_signers(PKCS7 *p7, STACK_OF(X509) *certs, int flags) 
 
 %}
 
+/* Additional interface definitions for degenerate PKCS#7 object creation
+ * 
+*/
+%rename(pkcs7_set_type) PKCS7_set_type;
+extern PKCS7_set_type(PKCS7 *p7, int type);
+
+%threadallow pkcs7_create_deg;
+%inline %{
+PKCS7 *pkcs7_create_deg(X509 *x509) {
+    PKCS7 *p7 = NULL;
+    PKCS7_SIGNED = NULL;
+    int ret=1;
+    
+	if ((p7=PKCS7_new()) == NULL) goto end;
+	if ((p7s=PKCS7_SIGNED_new()) == NULL) goto end;  
+	p7->type=OBJ_nid2obj(NID_pkcs7_signed);
+	p7->d.sign=p7s;
+	p7s->contents->type=OBJ_nid2obj(NID_pkcs7_data);
+
+	if (!ASN1_INTEGER_set(p7s->version,1)) goto end;
+	if ((crl_stack=sk_X509_CRL_new_null()) == NULL) goto end;
+	p7s->crl=crl_stack;
+	if ((cert_stack=sk_X509_new_null()) == NULL) goto end;
+	p7s->cert=cert_stack;
+	
+	if (!(PKCS7_add_certificate(p7, x509) == 1))
+		{
+		BIO_printf(bio_err, "error loading certificates\n");
+		ERR_print_errors(bio_err);
+		goto end;
+		}
+	
+end:
+	if (p7 != NULL) PKCS7_free(p7);
+
+return (p7);	/* need to return a PKCS7* */
+    
+}
+%}
+
+
