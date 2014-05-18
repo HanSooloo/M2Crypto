@@ -266,12 +266,14 @@ PKCS7 *pkcs7_create_deg(X509 *x509) {
 	p7s->crl=crl_stack;
 	if ((cert_stack=sk_X509_new_null()) == NULL) goto end;
 	p7s->cert=cert_stack;
+
+	sk_X509_push(cert_stack, x509);
 	
-	if (!(PKCS7_add_certificate(p7, x509) == 1))
-		{
-		PyErr_SetString(_pkcs7_err, ERR_reason_error_string(ERR_get_error()));
-		goto end;
-		}
+// 	if (!(PKCS7_add_certificate(p7, x509) == 1))
+// 		{
+// 		PyErr_SetString(_pkcs7_err, ERR_reason_error_string(ERR_get_error()));
+// 		goto end;
+// 		}
 	
 end:
 	if (p7 != NULL) PKCS7_free(p7);
