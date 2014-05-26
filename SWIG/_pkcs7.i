@@ -8,12 +8,15 @@
 #include <openssl/evp.h>
 #include <openssl/objects.h>
 #include <openssl/pkcs7.h>
+#include <openssl/x509.h>
+#include <openssl/x509v3.h>
 %}
 
 %apply Pointer NONNULL { BIO * };
 %apply Pointer NONNULL { EVP_CIPHER * };
 %apply Pointer NONNULL { EVP_PKEY * };
 %apply Pointer NONNULL { PKCS7 * };
+%apply Pointer NONNULL { PKCS7_SIGNED * };
 %apply Pointer NONNULL { STACK_OF(X509) * };
 %apply Pointer NONNULL { X509 * };
 
@@ -242,21 +245,18 @@ STACK_OF(X509) *pkcs7_get0_signers(PKCS7 *p7, STACK_OF(X509) *certs, int flags) 
 /* Additional interface definitions for degenerate PKCS#7 object creation
  * 
 */
-%rename(pkcs7_set_type) PKCS7_set_type;
-extern PKCS7_set_type(PKCS7 *p7, int type);
-
-%threadallow pkcs7_create_deg;
+%threadallow pkcs7_create_degenerate;
 %inline %{
-PKCS7 *pkcs7_create_deg(X509 *x509) {
-    PKCS7 *p7 = NULL;
-    PKCS7_SIGNED *p7s = NULL;
+int pkcs7_create_degenerate(STACK_OF(X509) *cert_stack, BIO *bio) {
+	int ret=1;
+	PKCS7 *p7=NULL;
+	PKCS7_SIGNED *p7s=NULL;
+	X509_CRL *crl=NULL;
 	STACK_OF(X509_CRL) *crl_stack=NULL;
-	STACK_OF(X509) *cert_stack=NULL;
 
-    int ret=1;
-    
 	if ((p7=PKCS7_new()) == NULL) goto end;
 	if ((p7s=PKCS7_SIGNED_new()) == NULL) goto end;  
+	
 	p7->type=OBJ_nid2obj(NID_pkcs7_signed);
 	p7->d.sign=p7s;
 	p7s->contents->type=OBJ_nid2obj(NID_pkcs7_data);
@@ -264,23 +264,20 @@ PKCS7 *pkcs7_create_deg(X509 *x509) {
 	if (!ASN1_INTEGER_set(p7s->version,1)) goto end;
 	if ((crl_stack=sk_X509_CRL_new_null()) == NULL) goto end;
 	p7s->crl=crl_stack;
-	if ((cert_stack=sk_X509_new_null()) == NULL) goto end;
 	p7s->cert=cert_stack;
+	
+	ret=i2d_PKCS7_bio(bio, p7);
 
-	sk_X509_push(cert_stack, x509);
-	
-// 	if (!(PKCS7_add_certificate(p7, x509) == 1))
-// 		{
-// 		PyErr_SetString(_pkcs7_err, ERR_reason_error_string(ERR_get_error()));
-// 		goto end;
-// 		}
-	
 end:
-	if (p7 != NULL) PKCS7_free(p7);
+	p7s->cert=NULL;
+	
+	if (p7 != NULL) {
+// 		printf("about to free p7: ");
+		PKCS7_free(p7);
+// 		printf("freed.\n");
+	}
 
-	return (p7);	/* need to return a PKCS7* */
-    
+	return ret;
+
 }
 %}
-
-
